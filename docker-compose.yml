@@ -1,0 +1,41 @@
+services:
+  # The PostgreSQL Database Service
+  db:
+    image: postgres:17-alpine
+    container_name: bank_postgres_db
+    environment:
+      - POSTGRES_USER=prod_user
+      - POSTGRES_PASSWORD=a_very_strong_password
+      - POSTGRES_DB=bankdb
+    ports:
+      # You can optionally expose the database port to your local machine for debugging.
+      - "5432:5432"
+    volumes:
+      # This persists the database data on your local machine, so it's not lost
+      # when you stop and start the containers.
+      - postgres_data:/var/lib/postgresql/data
+    restart: unless-stopped
+
+  # The Rust API Service
+  api:
+    container_name: bank_api_server
+    # Build the image from the Dockerfile in the current directory.
+    build: .
+    ports:
+      # Map port 3000 on your local machine to port 3000 in the container.
+      - "3000:3000"
+    environment:
+      # --- IMPORTANT: These environment variables override the config/default.toml file ---
+      # The database URL points to the 'db' service name. Docker Compose handles the networking.
+      - APP_DATABASE_URL=postgres://prod_user:a_very_strong_password@db:5432/bankdb
+      - APP_JWT_SECRET=a-super-long-and-secure-random-key-for-production-use-12345
+      # Set the log level for the application.
+      - RUST_LOG=info
+    # This ensures the database container is started and healthy before the API starts.
+    depends_on:
+      - db
+    restart: unless-stopped
+
+# Define the named volume for persisting database data.
+volumes:
+  postgres_data:
