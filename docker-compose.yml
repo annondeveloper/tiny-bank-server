@@ -1,41 +1,44 @@
 services:
-  # The PostgreSQL Database Service
+  # The PostgreSQL Database Service for production
   db:
-    image: postgres:17-alpine
-    container_name: bank_postgres_db
+    image: postgres:15-alpine
+    container_name: production_db
+    restart: unless-stopped
     environment:
+      # --- IMPORTANT: You can change these credentials for your deployment ---
       - POSTGRES_USER=prod_user
       - POSTGRES_PASSWORD=a_very_strong_password
-      - POSTGRES_DB=bankdb
-    ports:
-      # You can optionally expose the database port to your local machine for debugging.
-      - "5432:5432"
+      - POSTGRES_DB=bankdb_prod
     volumes:
-      # This persists the database data on your local machine, so it's not lost
-      # when you stop and start the containers.
-      - postgres_data:/var/lib/postgresql/data
-    restart: unless-stopped
+      # This persists the database data on your local machine.
+      - postgres_prod_data:/var/lib/postgresql/data
+      # This volume mounts the init script to create the table automatically.
+      # You MUST create the `./db/init/01-init.sql` file next to this docker-compose.yml file.
+      - ./db/init:/docker-entrypoint-initdb.d
+    ports:
+      # Optionally expose the database port to the host machine for debugging.
+      - "5432:5432"
 
-  # The Rust API Service
+  # The Rust API Service, pulled from Docker Hub
   api:
-    container_name: bank_api_server
-    # Build the image from the Dockerfile in the current directory.
-    build: .
+    # This pulls your public image from Docker Hub.
+    image: annondeveloper/tiny-bank-server:main
+    container_name: production_api
+    restart: unless-stopped
     ports:
       # Map port 3000 on your local machine to port 3000 in the container.
       - "3000:3000"
     environment:
-      # --- IMPORTANT: These environment variables override the config/default.toml file ---
-      # The database URL points to the 'db' service name. Docker Compose handles the networking.
-      - APP_DATABASE_URL=postgres://prod_user:a_very_strong_password@db:5432/bankdb
-      - APP_JWT_SECRET=a-super-long-and-secure-random-key-for-production-use-12345
-      # Set the log level for the application.
+      # These environment variables configure the running application.
+      # The password here MUST match the POSTGRES_PASSWORD set for the 'db' service above.
+      - APP_DATABASE_URL=postgres://prod_user:a_very_strong_password@db:5432/bankdb_prod
+      # --- IMPORTANT: Change this to a secure, random string for production ---
+      - APP_JWT_SECRET=your_super_secret_production_key_12345
       - RUST_LOG=info
-    # This ensures the database container is started and healthy before the API starts.
+    # This ensures the database container is started before the API starts.
     depends_on:
       - db
-    restart: unless-stopped
 
-# Define the named volume for persisting database data.
+# Defines the named volume for persisting database data.
 volumes:
-  postgres_data:
+  postgres_prod_data:
