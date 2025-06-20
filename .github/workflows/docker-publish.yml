@@ -1,0 +1,57 @@
+# .github/workflows/docker-publish.yml
+
+name: Docker Publish CI
+
+# This workflow runs on every push to the `main` branch.
+on:
+  push:
+    branches: [ "main" ]
+
+env:
+  # The name of the Docker image you will publish.
+  # It's good practice to use lowercase for image names.
+  IMAGE_NAME: tiny-bank-server
+
+jobs:
+  build-and-publish:
+    # Use the latest version of Ubuntu as the runner.
+    runs-on: ubuntu-latest
+
+    # This grants the workflow permissions to write to GitHub Packages (the container registry).
+    permissions:
+      contents: read
+      packages: write
+
+    steps:
+      # Step 1: Check out your repository code so the workflow can access it.
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      # Step 2: Log in to GitHub Container Registry (GHCR).
+      # This step uses a special GITHUB_TOKEN that GitHub automatically creates for the workflow.
+      - name: Log in to GitHub Container Registry
+        uses: docker/login-action@v3
+        with:
+          registry: ghcr.io
+          username: ${{ github.repository_owner }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+
+      # Step 3: Extract metadata (like tags and labels) for the Docker image.
+      # This action automatically creates useful tags for your image, like a tag for the specific
+      # commit hash and a 'latest' tag for the most recent commit on the main branch.
+      - name: Extract Docker metadata
+        id: meta
+        uses: docker/metadata-action@v5
+        with:
+          images: ghcr.io/${{ github.repository_owner }}/${{ env.IMAGE_NAME }}
+
+      # Step 4: Build and push the Docker image to GHCR.
+      # This is the main step. It uses the `docker/build-push-action`, which is the standard
+      # for building images in GitHub Actions. It will find your `Dockerfile` automatically.
+      - name: Build and push Docker image
+        uses: docker/build-push-action@v5
+        with:
+          context: .
+          push: true
+          tags: ${{ steps.meta.outputs.tags }}
+          labels: ${{ steps.meta.outputs.labels }}
