@@ -1,0 +1,12 @@
+# Default configuration settings.
+# These can be overridden by a production.toml file or by environment variables.
+
+server_address = "0.0.0.0:3000"
+
+[database]
+url = "postgres://postgres:password@localhost:5432/bankdb"
+
+[jwt]
+# WARNING: This is a default secret for development only.
+# It MUST be overridden in production via environment variables.
+secret = "a-default-development-secret-that-is-not-secure"
