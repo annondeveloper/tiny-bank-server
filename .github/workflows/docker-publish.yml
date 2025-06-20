@@ -6,11 +6,25 @@ name: Docker Publish CI
 on:
   push:
     branches: [ "main" ]
+    # FIX: Add paths-ignore to prevent running the workflow on documentation changes.
+    # The workflow will be skipped if a commit ONLY contains changes to these files/paths.
+    paths-ignore:
+      - 'README.md'
+      - 'LICENSE'
+      - '.gitignore'
+      - 'docker-compose.yml'
+      - '.devcontainer/**'
+      - 'docs/**' # Any future documentation folder
 
 jobs:
   build-and-publish:
     # Use the latest version of Ubuntu as the runner.
     runs-on: ubuntu-latest
+    
+    # Grant permissions for the workflow to publish packages.
+    permissions:
+      contents: read
+      packages: write
 
     steps:
       # Step 1: Check out your repository code so the workflow can access it.
@@ -30,7 +44,7 @@ jobs:
         id: meta
         uses: docker/metadata-action@v5
         with:
-          # FIX: Dynamically generate the image name from your Docker Hub username secret
+          # Dynamically generate the image name from your Docker Hub username secret
           # and the name of the current GitHub repository.
           # Example: yourdockerhubusername/tiny-bank-server
           images: ${{ secrets.DOCKERHUB_USERNAME }}/${{ github.event.repository.name }}
