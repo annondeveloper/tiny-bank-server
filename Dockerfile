@@ -1,10 +1,10 @@
 # ---- Stage 1: Build the application ----
 # Use the official Rust image as a build environment.
-# Using a specific version ensures reproducible builds.
 FROM rust:1.87-slim-bookworm as builder
 
-# Install build dependencies.
-RUN apt-get update && apt-get install -y build-essential pkg-config libssl-dev
+# FIX: Add `curl` to the list of installed packages.
+# This is required by the utoipa-swagger-ui crate's build script.
+RUN apt-get update && apt-get install -y build-essential pkg-config libssl-dev curl
 
 # Set the working directory
 WORKDIR /usr/src/app
