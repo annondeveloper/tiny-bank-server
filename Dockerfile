@@ -34,24 +34,22 @@ RUN cargo build --release
 # This is the final, minimal image for production.
 FROM debian:bookworm-slim as runtime
 
-# Install runtime dependencies.
-# We add `ca-certificates` for HTTPS calls and `curl` for debugging if needed.
-# We also add the `sqlx-cli` to run migrations.
-WORKDIR /app
+# Install only the necessary runtime dependencies.
+# `ca-certificates` is needed for making secure HTTPS calls.
 RUN apt-get update && \
-    apt-get install -y ca-certificates curl && \
-    rm -rf /var/lib/apt/lists/* && \
-    curl -L https://github.com/launchbadge/sqlx/releases/download/v0.7.4/sqlx-v0.7.4-x86_64-unknown-linux-musl.tar.gz | tar -xz && \
-    mv sqlx-v0.7.4-x86_64-unknown-linux-musl/sqlx /usr/local/bin/
+    apt-get install -y ca-certificates && \
+    rm -rf /var/lib/apt/lists/*
 
-# Copy the compiled binary and required files.
+# Copy the compiled binary and the configuration file.
+# The migrations are now embedded in the binary, so we don't need to copy them.
 COPY --from=builder /app/target/release/tiny-bank-server /usr/local/bin/
 COPY config/default.toml /app/config/default.toml
-COPY migrations /app/migrations
+
+WORKDIR /app
 
 # Expose the application port.
 EXPOSE 3000
 
 # The command to run when the container starts.
-# It first runs database migrations and then starts the server.
-CMD ["/bin/sh", "-c", "sqlx migrate run && tiny-bank-server"]
+# The application now handles its own migrations.
+CMD ["tiny-bank-server"]

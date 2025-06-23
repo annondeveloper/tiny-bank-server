@@ -50,13 +50,8 @@ struct Settings {
 impl Settings {
     fn new() -> Result<Self, ConfigError> {
         let s = Config::builder()
-            // 1. Start with `config/default.toml`
             .add_source(File::with_name("config/default"))
-            // 2. Add in environment-specific overrides (e.g., `config/production.toml`)
             .add_source(File::with_name("config/production").required(false))
-            // 3. Add in settings from environment variables (e.g., `APP_DATABASE_URL=...`)
-            //    with a prefix of `APP` and a separator of `_`
-            // FIX: Use a single underscore separator, which is more standard.
             .add_source(Environment::with_prefix("APP").separator("_"))
             .build()?;
 
@@ -126,18 +121,13 @@ struct AppState {
     settings: Settings,
 }
 
-// Use the default multi-threaded runtime for production performance.
 #[tokio::main]
 async fn main() -> Result<(), Box<dyn std::error::Error>> {
-    // Use structured JSON logging for production.
     tracing_subscriber::fmt().json().init();
 
     info!("[STARTUP] Loading configuration...");
     let settings = Settings::new()?;
     info!("[SUCCESS] Configuration loaded.");
-
-    // This debug output will now show if the override is working.
-    println!("\n[DEBUG] FINAL DATABASE URL: {}\n", settings.database.url);
 
     info!("[STARTUP] Attempting to connect to the database...");
     let pool = PgPoolOptions::new()
@@ -145,6 +135,11 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
         .connect(&settings.database.url)
         .await?;
     info!("[SUCCESS] Database pool created successfully.");
+
+    // --- FIX: Run database migrations automatically on startup ---
+    info!("[STARTUP] Running database migrations...");
+    sqlx::migrate!("./migrations").run(&pool).await?;
+    info!("[SUCCESS] Database migrations completed.");
 
     info!("[STARTUP] Creating HTTP client...");
     let http_client = ReqwestClient::new();
@@ -253,11 +248,7 @@ impl IntoResponse for AppError {
 #[derive(Debug, Serialize, Deserialize, Validate, ToSchema)]
 #[serde(rename_all = "camelCase")]
 struct RegisterUserPayload {
-    #[validate(length(
-        min = 9,
-        max = 18,
-        message = "Account number must be between 9 and 18 digits."
-    ))]
+    #[validate(length(min = 9, max = 18, message = "Account number must be between 9 and 18 digits."))]
     account_number: String,
     #[validate(regex(path = "*IFSC_REGEX", message = "Invalid IFSC code format."))]
     ifsc: String,
