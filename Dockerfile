@@ -12,8 +12,8 @@ RUN cargo chef prepare --recipe-path recipe.json
 FROM rust:1.87-slim-bookworm as cacher
 WORKDIR /app
 RUN cargo install cargo-chef
-# Install build dependencies needed by some crates.
-RUN apt-get update && apt-get install -y build-essential pkg-config libssl-dev
+# FIX: Install `curl` here, as it's needed by the utoipa-swagger-ui build script.
+RUN apt-get update && apt-get install -y build-essential pkg-config libssl-dev curl
 COPY --from=planner /app/recipe.json recipe.json
 # Build dependencies
 RUN cargo chef cook --release --recipe-path recipe.json
