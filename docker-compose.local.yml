@@ -1,0 +1,54 @@
+# This Docker Compose file is optimized for local development.
+# It builds the image locally and mounts your source code for live changes.
+
+services:
+  # The PostgreSQL Database Service for development
+  db:
+    image: postgres:17-alpine
+    container_name: local_dev_db
+    restart: unless-stopped
+    environment:
+      # Use non-production credentials for local development
+      - POSTGRES_USER=dev_user
+      - POSTGRES_PASSWORD=dev_password
+      - POSTGRES_DB=bankdb_dev
+    volumes:
+      # Persists database data in a named volume to survive restarts
+      - postgres_dev_data:/var/lib/postgresql/data
+    ports:
+      # Map to host port 5433 to avoid conflicts with any other local PostgreSQL instance
+      - "5433:5432"
+
+  # The Rust API Service for development
+  api:
+    container_name: local_dev_api
+    # This tells docker-compose to build the image from the Dockerfile
+    # in the current directory.
+    build: .
+    volumes:
+      # Mount the entire project directory into the container.
+      # This is the key for live development: code changes on your host machine
+      # are instantly reflected inside the container. Cargo will use this source
+      # to recompile just what's necessary.
+      - .:/app
+    working_dir: /app
+    # Override the production CMD from the Dockerfile.
+    # This keeps the container running indefinitely so you can attach a shell
+    # or run commands inside it as needed.
+    command: sleep infinity
+    ports:
+      - "3000:3000"
+    environment:
+      # The DATABASE_URL is used by both sqlx-cli and the app itself.
+      # The APP_* variables are used by the config crate at runtime.
+      - DATABASE_URL=postgres://dev_user:dev_password@db:5432/bankdb_dev
+      - APP_DATABASE_URL=postgres://dev_user:dev_password@db:5432/bankdb_dev
+      - APP_JWT__SECRET=a-simple-and-insecure-local-dev-secret
+      # Use a more verbose log level for local development.
+      - RUST_LOG=info,sqlx=warn
+    depends_on:
+      - db
+
+# Defines the named volume for the development database
+volumes:
+  postgres_dev_data:
