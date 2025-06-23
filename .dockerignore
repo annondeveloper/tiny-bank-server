@@ -1,0 +1,20 @@
+# Ignore the entire target directory, which contains build artifacts.
+target/
+
+# Ignore the git directory.
+.git/
+
+# Ignore IDE-specific files.
+.idea/
+.vscode/
+
+# Ignore the local development container configuration.
+.devcontainer/
+
+# Ignore environment files.
+.env
+
+# Ignore build and log files from the cargo-chef workflow.
+chef-target/
+recipe.json
+README.md

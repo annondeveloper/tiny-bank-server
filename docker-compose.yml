@@ -12,9 +12,6 @@ services:
     volumes:
       # This persists the database data on your local machine.
       - postgres_prod_data:/var/lib/postgresql/data
-      # This volume mounts the init script to create the table automatically.
-      # You MUST create the `./db/init/01-init.sql` file next to this docker-compose.yml file.
-      - ./db/init:/docker-entrypoint-initdb.d
     ports:
       # Optionally expose the database port to the host machine for debugging.
       - "5432:5432"

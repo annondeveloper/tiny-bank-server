@@ -253,7 +253,11 @@ impl IntoResponse for AppError {
 #[derive(Debug, Serialize, Deserialize, Validate, ToSchema)]
 #[serde(rename_all = "camelCase")]
 struct RegisterUserPayload {
-    #[validate(length(min = 9, max = 18, message = "Account number must be between 9 and 18 digits."))]
+    #[validate(length(
+        min = 9,
+        max = 18,
+        message = "Account number must be between 9 and 18 digits."
+    ))]
     account_number: String,
     #[validate(regex(path = "*IFSC_REGEX", message = "Invalid IFSC code format."))]
     ifsc: String,
